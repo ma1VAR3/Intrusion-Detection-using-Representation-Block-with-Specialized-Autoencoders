@@ -34,7 +34,7 @@ def reduceFeaturespace(X_train, y_train, feature_dim, mode):
         indices = np.where(selector.support_==True)[0]
         features = X_train.columns.values[indices]
         X_train= X_train[features]
-        return X_train
+        return X_train, features
     elif mode == 'svc':
         print('SVC')
         from sklearn.feature_selection import RFE
@@ -44,7 +44,7 @@ def reduceFeaturespace(X_train, y_train, feature_dim, mode):
         indices = np.where(selector.support_==True)[0]
         features = X_train.columns.values[indices]
         X_train= X_train[features]
-        return X_train
+        return X_train, features
     elif mode == 'rf':
         print('RF')
         from sklearn.feature_selection import RFE
@@ -54,7 +54,7 @@ def reduceFeaturespace(X_train, y_train, feature_dim, mode):
         indices = np.where(selector.support_==True)[0]
         features = X_train.columns.values[indices]
         X_train= X_train[features]
-        return X_train
+        return X_train, features
     elif mode == 'chi2':
         print('CHI2')
         from sklearn.feature_selection import SelectKBest
@@ -63,7 +63,7 @@ def reduceFeaturespace(X_train, y_train, feature_dim, mode):
         indices = np.where(selector.support_==True)[0]
         features = X_train.columns.values[indices]
         X_train= X_train[features]
-        return X_train
+        return X_train, features
     else:
         print('DTC')
         from sklearn.feature_selection import RFE
@@ -73,5 +73,5 @@ def reduceFeaturespace(X_train, y_train, feature_dim, mode):
         indices = np.where(selector.support_==True)[0]
         features = X_train.columns.values[indices]
         X_train= X_train[features]
-        return X_train
+        return X_train, features
     

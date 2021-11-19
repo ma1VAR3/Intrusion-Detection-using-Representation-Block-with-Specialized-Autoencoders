@@ -1,4 +1,4 @@
-def getdata():
+def getdata(feature_dim):
     import pandas as pd
     import numpy as np
     from sklearn.model_selection import train_test_split
@@ -7,27 +7,63 @@ def getdata():
 
     from preprocessing import encodeCategorical, scaleData, reduceFeaturespace
 
-    df = pd.read_csv('./datasets/NSLKDD/kdd_train.csv')
-    df= encodeCategorical(df)
+    df = pd.read_csv('./datasets/NSLKDD/KDDTrain+.txt')
+    cols = get_cols()
+    df.columns = cols
+
+    df = encodeCategorical(df)
     x = df.drop('labels', axis=1)
     y = df.loc[:, ['labels']]
+
+    X_train = scaleData(x)
+
+    y_train = np_utils.to_categorical(y)
+
+    X_train = reduceFeaturespace(X_train, y_train, feature_dim, 'dtc')
+
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=.2, random_state=42)
     
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=.2, random_state=42)
-    
-    X_train, X_test = scaleData(X_train, X_test)
-
-    y_train = np_utils.to_categorical(y_train)
-    y_test = np_utils.to_categorical(y_test)
-
-    X_train, X_test = reduceFeaturespace(X_train, X_test, y_train)
-
     return X_train, X_test, y_train, y_test
+
+def getattackdata(feature_dim):
+    import pandas as pd
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    import keras
+    from keras.utils import np_utils
+
+    from preprocessing import encodeCategorical, scaleData, reduceFeaturespace
+
+    df = pd.read_csv('./datasets/NSLKDD/KDDTrain+.txt')
+    cols = get_cols()
+    df.columns = cols
+
+    categories = get_labels('priviledge')
+    df['drop'] = df.apply(lambda x: 1 if (x['labels'] in categories or x['labels']=='normal') else 0, axis=1)
+    idx_p = np.where(df['drop']==1)[0]
+    df = df.drop(idx_p)
+
+    df = encodeCategorical(df)
+    x = df.drop('labels', axis=1)
+    x = x.drop('drop', axis=1)
+    y = df.loc[:, ['labels']]
+
+    X_train = scaleData(x)
+
+    y_train = np_utils.to_categorical(y)
+
+    X_train, feats = reduceFeaturespace(X_train, y_train, feature_dim, 'dtc')
+
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=.2, random_state=42)
+    
+    return X_train, X_test, y_train, y_test, feats
 
 def getbinarydata(feature_dim):
     import pandas as pd
     import numpy as np
     from sklearn.model_selection import train_test_split
     from preprocessing import encodeCategorical, scaleData, reduceFeaturespace
+    import pickle
 
     df = pd.read_csv('./datasets/NSLKDD/KDDTrain+.txt')
     cols = get_cols()
@@ -35,20 +71,58 @@ def getbinarydata(feature_dim):
     print(df.labels.unique())
     df['is_attacked'] = df.apply(lambda x: 0 if x['labels']=='normal' else 1, axis=1)
     
-    df= encodeCategorical(df)
+    categories = get_labels('priviledge')
     
+    attacked_df = df.copy()
+    benign_df = df.copy()
+
+    benign_df['drop'] = benign_df.apply(lambda x: 1 if (x['is_attacked'] == 1 or x['labels'] in categories) else 0, axis=1)
+    idx_b = np.where(benign_df['drop']==1)[0]
+    benign_df = benign_df.drop(idx_b)
+
+    attacked_df['drop'] = attacked_df.apply(lambda x: 1 if (x['is_attacked'] == 0 or x['labels'] in categories) else 0, axis=1)
+    idx_a = np.where(attacked_df['drop']==1)[0]
+    attacked_df = attacked_df.drop(idx_a)
+
+    df['drop'] = df.apply(lambda x: 1 if (x['labels'] in categories) else 0, axis=1)
+    idx_p = np.where(df['drop']==1)[0]
+    df = df.drop(idx_p)
+
+    benign_df= encodeCategorical(benign_df)
+    attacked_df= encodeCategorical(attacked_df)
+    df = encodeCategorical(df)
+    
+
     x = df.drop('labels', axis=1)
     x = x.drop('is_attacked', axis=1)
     x = x.drop('level', axis=1)
+    x = x.drop('drop', axis=1)
     y = df.loc[:, ['is_attacked']]
-    
     x = scaleData(x)
+    x, feats = reduceFeaturespace(x, y, feature_dim, 'dtc')
 
-    x = reduceFeaturespace(x, y, feature_dim, 'dtc')
+    x_b = benign_df.drop('labels', axis=1)
+    x_b = x_b.drop('is_attacked', axis=1)
+    x_b = x_b.drop('level', axis=1)
+    x_b = x_b.drop('drop', axis=1)
+    y_b = benign_df.loc[:, ['is_attacked']]
+    x_b = scaleData(x_b)
+    x_b = x_b[feats]
 
-    return x, y
+    x_a = attacked_df.drop('labels', axis=1)
+    x_a = x_a.drop('is_attacked', axis=1)
+    x_a = x_a.drop('level', axis=1)
+    x_a = x_a.drop('drop', axis=1)
+    y_a = attacked_df.loc[:, ['is_attacked']]
+    x_a = scaleData(x_a)
+    x_a = x_a[feats]
 
-def getattackdata(feature_dim, category):
+    with open('rfe_binary.pkl','wb') as rfeb:
+        pickle.dump(feats, rfeb, pickle.HIGHEST_PROTOCOL)
+
+    return x_b, y_b, x_a, y_a, x, y
+
+def getcategorydata(feature_dim, feats):
     import pandas as pd
     import numpy as np
     from sklearn.model_selection import train_test_split
@@ -56,29 +130,34 @@ def getattackdata(feature_dim, category):
     from keras.utils import np_utils
     from preprocessing import encodeCategorical, scaleData, reduceFeaturespace
     
-    df = pd.read_csv('./datasets/NSLKDD/KDDTrain+.txt')
-    cols = get_cols()
-    df.columns = cols
-    print(df.columns)
-    categories = get_labels(category)
-    df['drop'] = df.apply(lambda x: 0 if x['labels'] == (l for l in categories) else 1)
-    idx = np.where(df['drop']==1)[0]
-    df = df.drop(idx)
+    x_all = []
+    y_all = []
+    cats = get_categories('nslkdd')
     
-    
-    # idx = np.where(df['labels'] != x for x in labels)[0]
-    # df = df.drop(idx)
+    for c in cats:
+        print("Category: ", c)
+        df = pd.read_csv('./datasets/NSLKDD/KDDTrain+.txt')
+        cols = get_cols()
+        df.columns = cols
+        categories = get_labels(c)
+        df['drop'] = df.apply(lambda x: 0 if x['labels'] in categories else 1, axis=1)
+        idx = np.where(df['drop']==1)[0]
+        df = df.drop(idx)
+        print(df.labels.unique())
+        
+        df= encodeCategorical(df)
+        x = df.drop('labels', axis=1)
+        x = x.drop('level', axis=1)
+        x = x.drop('drop', axis=1)
+        y = df.loc[:, ['labels']]
+        
+        x = scaleData(x)
+        x = x[feats]
+        
+        x_all.append(x)
+        y_all.append(y)
 
-    df= encodeCategorical(df)
-    x = df.drop('labels', axis=1)
-    y = df.loc[:, ['labels']]
-    
-    x = scaleData(x)
-    # y = np_utils.to_categorical(y)
-    
-    x = reduceFeaturespace(x, y, feature_dim, 'dtc')
-
-    return x, y
+    return x_all, y_all
 
 def print_histories(histories):
     for i in range(len(histories)):
@@ -91,8 +170,18 @@ def get_labels(attack_class):
     probe_attacks = ['ipsweep','mscan','nmap','portsweep','saint','satan']
     privilege_attacks = ['buffer_overflow','loadmdoule','perl','ps','rootkit','sqlattack','xterm']
     access_attacks = ['ftp_write','guess_passwd','http_tunnel','imap','multihop','named','phf','sendmail','snmpgetattack','snmpguess','spy','warezclient','warezmaster','xclock','xsnoop']
-    if attack_class == 'ddos':
+    if attack_class == 'dos':
         return dos_attacks
+    if attack_class == 'probe':
+        return probe_attacks
+    if attack_class == 'priviledge':
+        return privilege_attacks
+    if attack_class == 'access':
+        return access_attacks
+
+def get_categories(dataset):
+    if dataset == "nslkdd":
+        return ['dos', 'probe', 'access']
 
 def get_cols():
     columns = (['duration','protocol_type','service','flag','src_bytes','dst_bytes'
