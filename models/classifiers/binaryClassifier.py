@@ -14,7 +14,6 @@ class BinaryClassifier:
 
         input_layer = Input(shape=(self.feature_dim, ))
         rep_layers=[]
-        dist_ops = []
         for i in range(len(self.encoders)):
             encoding = self.encoders[i](input_layer, training=False)     
             feat_layer1 = Dense(self.feature_dim , activation="swish", name="feature_extractor"+str(i))(encoding)
@@ -22,11 +21,10 @@ class BinaryClassifier:
             dist_opt = Dense(1, activation="sigmoid", name="category_identifier"+str(i))(feat_layer2)
             rep_layer = layers.concatenate([dist_opt, feat_layer1])
             rep_layers.append(rep_layer)
-            dist_ops.append(dist_opt)
+
         
         concat_layer = layers.concatenate([l for l in rep_layers], name="concatenation")
-        dist_concat = layers.concatenate([l for l in dist_ops])
-        
+
         layer1 = Dense(64, activation="swish")(concat_layer)
         layer1 = BatchNormalization()(layer1)
 
@@ -37,7 +35,7 @@ class BinaryClassifier:
         classifier.summary()
 
         self.classifier = classifier
-        self.temp = Model(inputs=input_layer, outputs=dist_concat)
+
 
     def train(self, x_train, y_train, x_test, y_test):
         import tensorflow as tf
@@ -47,8 +45,8 @@ class BinaryClassifier:
         def LRschedulerAE(epoch):
             import math
             initial_lrate = 0.1
-            drop = 0.5
-            epochs_drop = 5.0
+            drop = 0.9
+            epochs_drop = 2.0
             lrate = initial_lrate * math.pow(drop,  
                 math.floor((1+epoch)/epochs_drop))
             return lrate
@@ -72,20 +70,6 @@ class BinaryClassifier:
         print(f1_score(y_test, y_preds, average='micro', zero_division=0))
         print(f1_score(y_test, y_preds, average='weighted', zero_division=0))
 
-        y_p_t =  self.temp.predict(x_train[0:32])
-        for i in range (32):
-            print("predict:", y_p_t[i])
-            print("label:", y_train[i])
-        print("*"*20)
-        y_p_t =  self.temp.predict(x_train[10000:10032])
-        for i in range (32):
-            print("predict:", y_p_t[i])
-            print("label:", y_train[10000+i])
-        print("*"*20)
-        y_p_t =  self.temp.predict(x_train[20000:20032])
-        for i in range (32):
-            print("predict:", y_p_t[i])
-            print("label:", y_train[20000+i])
 
         return history
     

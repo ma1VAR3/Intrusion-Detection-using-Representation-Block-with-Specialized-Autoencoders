@@ -21,7 +21,7 @@ def train_binary():
 
     encoders = []
 
-    x_b, y_b, x_a, y_a, x, y = getbinarydata(feature_dim)
+    x_b, y_b, x_a, y_a, x, y, feats = getbinarydata(feature_dim, "nslkdd")
 
     X_train, X_valid, y_train, y_valid = train_test_split(x, y, test_size=.2, random_state=42)
     
@@ -62,7 +62,7 @@ def train_multi():
     import numpy as np
     from utils import getcategorydata, getattackdata
 
-    x_data_train, x_data_valid, y_data_train, y_data_valid, feats = getattackdata(feature_dim)
+    x_data_train, x_data_valid, y_data_train, y_data_valid, feats = getattackdata(feature_dim, "nslkdd")
     x, y = getcategorydata(feature_dim, feats)
 
     encoders = []
@@ -74,7 +74,6 @@ def train_multi():
         multi_encoder = multi_ae.encoder
         encoders.append(multi_encoder)
 
-    x_data_train, x_data_valid, y_data_train, y_data_valid = getattackdata(feature_dim)
     multi_classifier = MulticlassClassifier(encoders= encoders,feature_dim= feature_dim, num_classes = y_data_train.shape[1] ,epochs= clf_epoch, batch_size=32)
     history = multi_classifier.train(x_data_train, y_data_train, x_data_valid, y_data_valid)
     

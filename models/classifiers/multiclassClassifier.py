@@ -36,28 +36,6 @@ class MulticlassClassifier:
         dist_concat = layers.concatenate([l for l in dist_ops])
         layer1 = Dense(32, activation="swish", name="fully_connected")(concat_layer)
         layer1 = BatchNormalization()(layer1)
-        # layer1 = Dropout(0.2)(layer1)
-        
-        # layer2 = Dense(32, activation="relu")(layer1)
-        # layer2 = BatchNormalization()(layer2)
-        # layer2 = Dropout(0.3)(layer2)
-
-
-        # layer1 = Dense(64, activation="relu")(encoding)
-        # layer1 = BatchNormalization()(layer1)
-        # layer1 = Dropout(0.2)(layer1)
-
-        # layer2 = Dense(64, activation="relu")(layer1)
-        # layer2 = BatchNormalization()(layer2)
-        # layer2 = Dropout(0.3)(layer2)
-
-        # layer3 = Dense(128, activation="relu")(layer2)
-        # layer3 = BatchNormalization()(layer3)
-        # layer3 = Dropout(0.3)(layer3)
-
-        # layer4 = Dense(128, activation="relu")(layer3)
-        # layer4 = BatchNormalization()(layer4)
-        # layer4 = Dropout(0.2)(layer4)
 
         output_layer = Dense(self.num_classes, activation="softmax")(layer1)
 
@@ -65,7 +43,7 @@ class MulticlassClassifier:
         classifier.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'Precision', 'Recall', 'AUC'])
         classifier.summary()
         file = 'model.png'
-        plot_model(classifier, to_file=file, show_shapes=False)
+        plot_model(classifier, to_file=file, show_shapes=True)
         self.classifier = classifier
         self.temp = Model(inputs=input_layer, outputs=dist_concat)
         
