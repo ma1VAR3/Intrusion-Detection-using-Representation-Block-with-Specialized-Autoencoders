@@ -6,6 +6,7 @@ ae_epoch = 50
 clf_epoch = 30
 batch_size = 32
 RANDOM_STATE = 2021
+dataset = "nslkdd"
 
 if DEBUG==True:
     NUM_FOLDS = 3
@@ -21,7 +22,7 @@ def train_binary():
 
     encoders = []
 
-    x_b, y_b, x_a, y_a, x, y, feats = getbinarydata(feature_dim, "nslkdd")
+    x_b, y_b, x_a, y_a, x, y, feats = getbinarydata(feature_dim, dataset)
 
     X_train, X_valid, y_train, y_valid = train_test_split(x, y, test_size=.2, random_state=42)
     
@@ -63,7 +64,7 @@ def train_multi():
     from utils import getcategorydata, getattackdata
 
     x_data_train, x_data_valid, y_data_train, y_data_valid, feats = getattackdata(feature_dim, "nslkdd")
-    x, y = getcategorydata(feature_dim, feats)
+    x, y = getcategorydata(feature_dim, "nslkdd", feats)
 
     encoders = []
     for i in range(len(x)):

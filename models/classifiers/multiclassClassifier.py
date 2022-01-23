@@ -13,6 +13,7 @@ class MulticlassClassifier:
     def build_model(self):
 
         import tensorflow.keras as k
+        import tensorflow.math as m
         from tensorflow.keras import layers
         from tensorflow.keras.layers import Input, Dense, BatchNormalization, Dropout
         from tensorflow.keras.models import Model
@@ -25,15 +26,16 @@ class MulticlassClassifier:
         for i in range(len(self.encoders)):
             encoding = self.encoders[i](input_layer, training=False)
             
-            feat_layer1 = Dense(self.feature_dim , activation="swish", name="feature_extractor"+str(i))(encoding)
-            feat_layer2 = Dense(self.feature_dim , activation="swish", name="distribution_learner"+str(i))(encoding)
-            dist_opt = Dense(1, activation="sigmoid", name="category_identifier"+str(i))(feat_layer2)
-            rep_layer = layers.concatenate([dist_opt, feat_layer1])
+            feat_layer1 = Dense(self.feature_dim / 2, activation="swish", name="feature_extractor"+str(i))(encoding)
+            feat_layer2 = Dense(self.feature_dim / 2, activation="sigmoid", name="distribution_learner"+str(i))(encoding)
+            # deviation = m.square(m.subtract(feat_layer1, feat_layer2))
+            # dist_opt = Dense(1, activation="linear", name="category_identifier"+str(i))(deviation)
+            rep_layer = layers.concatenate([feat_layer1, feat_layer2])
             rep_layers.append(rep_layer)
-            dist_ops.append(dist_opt)
+            # dist_ops.append(deviation)
 
         concat_layer = layers.concatenate([l for l in rep_layers], name="concatenation")
-        dist_concat = layers.concatenate([l for l in dist_ops])
+        # dist_concat = layers.concatenate([l for l in dist_ops])
         layer1 = Dense(32, activation="swish", name="fully_connected")(concat_layer)
         layer1 = BatchNormalization()(layer1)
 
@@ -45,7 +47,7 @@ class MulticlassClassifier:
         file = 'model.png'
         plot_model(classifier, to_file=file, show_shapes=True)
         self.classifier = classifier
-        self.temp = Model(inputs=input_layer, outputs=dist_concat)
+        # self.temp = Model(inputs=input_layer, outputs=dist_concat)
         
         
     def train(self, x_train, y_train, x_test, y_test):
@@ -61,7 +63,7 @@ class MulticlassClassifier:
             lrate = initial_lrate * math.pow(drop,  
                 math.floor((1+epoch)/epochs_drop))
             return lrate
-
+                
         clf_lr = tf.keras.callbacks.LearningRateScheduler(LRschedulerAE)
 
         history = self.classifier.fit(x_train, y_train,
@@ -80,20 +82,20 @@ class MulticlassClassifier:
         print(f1_score(y_test, y_preds, average='micro', zero_division=0))
         print(f1_score(y_test, y_preds, average='weighted', zero_division=0))
 
-        y_p_t =  self.temp.predict(x_train[0:32])
-        for i in range (32):
-            print("predict:", y_p_t[i])
-            print("label:", y_train[i])
-        print("*"*20)
-        y_p_t =  self.temp.predict(x_train[10000:10032])
-        for i in range (32):
-            print("predict:", y_p_t[i])
-            print("label:", y_train[10000+i])
-        print("*"*20)
-        y_p_t =  self.temp.predict(x_train[20000:20032])
-        for i in range (32):
-            print("predict:", y_p_t[i])
-            print("label:", y_train[20000+i])
+        # y_p_t =  self.temp.predict(x_train[0:32])
+        # for i in range (32):
+        #     print("predict:", y_p_t[i])
+        #     print("label:", y_train[i])
+        # print("*"*20)
+        # y_p_t =  self.temp.predict(x_train[10000:10032])
+        # for i in range (32):
+        #     print("predict:", y_p_t[i])
+        #     print("label:", y_train[10000+i])
+        # print("*"*20)
+        # y_p_t =  self.temp.predict(x_train[20000:20032])
+        # for i in range (32):
+        #     print("predict:", y_p_t[i])
+        #     print("label:", y_train[20000+i])
 
         return history
     

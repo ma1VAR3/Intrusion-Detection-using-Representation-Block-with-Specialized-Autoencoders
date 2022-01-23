@@ -37,36 +37,27 @@ def getattackdata(feature_dim, dataset):
 
     from preprocessing import encodeCategorical, scaleData, reduceFeaturespace
 
-    if dataset == "nslkdd":
-        csv = './datasets/NSLKDD/KDDTrain+.txt'
-    if dataset == "cicids":
-        csv = './datasets/CICIDS/cicids2018.csv'
+    
+    csv = './datasets/NSLKDD/KDDTrain+.txt'
+    
     df = pd.read_csv(csv)
     
-    if dataset == "nslkdd":
-        cols = get_cols()
-        df.columns = cols
+    
+    cols = get_cols()
+    df.columns = cols
 
     # categories = get_labels('priviledge')
     # df['drop'] = df.apply(lambda x: 1 if (x['labels'] in categories or x['labels']=='normal') else 0, axis=1)
-    if dataset == "nslkdd":
-        df['drop'] = df.apply(lambda x: 1 if (x['labels']=='normal') else 0, axis=1)
-        idx_p = np.where(df['drop']==1)[0]
-        df = df.drop(idx_p)
+    
+    df['drop'] = df.apply(lambda x: 1 if (x['labels']=='normal') else 0, axis=1)
+    idx_p = np.where(df['drop']==1)[0]
+    df = df.drop(idx_p)
 
-        df = encodeCategorical(df)
-        x = df.drop('labels', axis=1)
-        x = x.drop('level', axis=1)
-        x = x.drop('drop', axis=1)
-        y = df.loc[:, ['labels']]
-
-    if dataset == "cicids":
-        df['drop'] = df.apply(lambda x: 1 if (x['Label'] == 1) else 0, axis=1)
-        idx_p = np.where(df['drop']==1)[0]
-        df = df.drop(idx_p)
-
-        x = df.drop('Label', axis=1)
-        y = df.loc[:, ['Label']]
+    df = encodeCategorical(df)
+    x = df.drop('labels', axis=1)
+    x = x.drop('level', axis=1)
+    x = x.drop('drop', axis=1)
+    y = df.loc[:, ['labels']]
 
     X_train = scaleData(x)
 
@@ -86,19 +77,18 @@ def getbinarydata(feature_dim, dataset):
     from preprocessing import encodeCategorical, scaleData, reduceFeaturespace
     import pickle
 
-    if dataset == "nslkdd":
-        csv = './datasets/NSLKDD/KDDTrain+.txt'
-    if dataset == "cicids":
-        csv = './datasets/CICIDS/cicids2018.csv'
+    
+    csv = './datasets/NSLKDD/KDDTrain+.txt'
+    
     df = pd.read_csv(csv)
     
-    if dataset == "nslkdd":
-        cols = get_cols()
-        df.columns = cols
+    cols = get_cols()
+    df.columns = cols
     
-
     df['is_attacked'] = df.apply(lambda x: 0 if x['labels']=='normal' else 1, axis=1)
     
+    
+
     attacked_df = df.copy()
     benign_df = df.copy()
 
@@ -116,29 +106,34 @@ def getbinarydata(feature_dim, dataset):
     # idx_p = np.where(df['drop']==1)[0]
     # df = df.drop(idx_p)
 
+    
     benign_df= encodeCategorical(benign_df)
     attacked_df= encodeCategorical(attacked_df)
     df = encodeCategorical(df)
     
 
-    x = df.drop('labels', axis=1)
-    x = x.drop('is_attacked', axis=1)
+    x = df.drop('is_attacked', axis=1)
+    x = x.drop('labels', axis=1)
     x = x.drop('level', axis=1)
+
     # x = x.drop('drop', axis=1)
     y = df.loc[:, ['is_attacked']]
     x = scaleData(x)
     x, feats = reduceFeaturespace(x, y, feature_dim, 'dtc')
 
-    x_b = benign_df.drop('labels', axis=1)
-    x_b = x_b.drop('is_attacked', axis=1)
+    
+    x_b = benign_df.drop('is_attacked', axis=1)
+    print("xb shape: ", x_b.shape)
+    x_b = x_b.drop('labels', axis=1)
     x_b = x_b.drop('level', axis=1)
     x_b = x_b.drop('drop', axis=1)
     y_b = benign_df.loc[:, ['is_attacked']]
     x_b = scaleData(x_b)
     x_b = x_b[feats]
 
-    x_a = attacked_df.drop('labels', axis=1)
-    x_a = x_a.drop('is_attacked', axis=1)
+    
+    x_a = attacked_df.drop('is_attacked', axis=1)
+    x_a = x_a.drop('labels', axis=1)
     x_a = x_a.drop('level', axis=1)
     x_a = x_a.drop('drop', axis=1)
     y_a = attacked_df.loc[:, ['is_attacked']]
@@ -150,7 +145,7 @@ def getbinarydata(feature_dim, dataset):
 
     return x_b, y_b, x_a, y_a, x, y, feats
 
-def getcategorydata(feature_dim, feats):
+def getcategorydata(feature_dim, dataset, feats):
     import pandas as pd
     import numpy as np
     from sklearn.model_selection import train_test_split
@@ -160,7 +155,7 @@ def getcategorydata(feature_dim, feats):
     
     x_all = []
     y_all = []
-    cats = get_categories('nslkdd')
+    cats = get_categories(dataset)
     
     for c in cats:
         print("Category: ", c)
@@ -198,9 +193,7 @@ def get_labels(attack_class):
     probe_attacks = ['ipsweep','mscan','nmap','portsweep','saint','satan']
     privilege_attacks = ['buffer_overflow','loadmdoule','perl','ps','rootkit','sqlattack','xterm']
     access_attacks = ['ftp_write','guess_passwd','http_tunnel','imap','multihop','named','phf','sendmail','snmpgetattack','snmpguess','spy','warezclient','warezmaster','xclock','xsnoop']
-    dos_cic = [6, 7, 8, 4]
-    botnet = [5]
-    bruteforce = [2, 3, 9, 10]
+    
     
     if attack_class == 'dos':
         return dos_attacks
@@ -210,18 +203,12 @@ def get_labels(attack_class):
         return privilege_attacks
     if attack_class == 'access':
         return access_attacks
-    if attack_class == 'dos_cic':
-        return dos_cic
-    if attack_class == 'botnet':
-        return botnet
-    if attack_class == 'bruteforce':
-        return bruteforce
+    
 
 def get_categories(dataset):
     if dataset == "nslkdd":
         return ['dos', 'probe', 'access', 'priviledge']
-    if dataset == "cicids":
-        return ['dos_cic', 'botnet', 'bruteforce']
+    
 
 def get_cols():
     columns = (['duration','protocol_type','service','flag','src_bytes','dst_bytes'

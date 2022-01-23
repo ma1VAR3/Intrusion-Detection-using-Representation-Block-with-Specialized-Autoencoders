@@ -17,8 +17,8 @@ class BinaryClassifier:
         for i in range(len(self.encoders)):
             encoding = self.encoders[i](input_layer, training=False)     
             feat_layer1 = Dense(self.feature_dim , activation="swish", name="feature_extractor"+str(i))(encoding)
-            feat_layer2 = Dense(self.feature_dim / 2, activation="swish", name="distribution_learner"+str(i))(encoding)
-            dist_opt = Dense(1, activation="sigmoid", name="category_identifier"+str(i))(feat_layer2)
+            feat_layer2 = Dense(self.feature_dim, activation="swish", name="distribution_learner"+str(i))(encoding)
+            dist_opt = Dense(1, activation="linear", name="category_identifier"+str(i))(feat_layer2)
             rep_layer = layers.concatenate([dist_opt, feat_layer1])
             rep_layers.append(rep_layer)
 

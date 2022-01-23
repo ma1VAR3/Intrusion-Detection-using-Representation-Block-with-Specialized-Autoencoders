@@ -1,4 +1,3 @@
-
 class BinaryAutoencoder:
     def __init__(self, inp_dim, enc_dim, epochs, batch_size):
         self.input_dim = inp_dim
